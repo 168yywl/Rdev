@@ -1,0 +1,136 @@
+﻿show full processlist;
+show global status;
+create index idx_shipper_id on t_shipping(shipper_id);
+create index idx_add_time on t_shipping(add_time);
+
+
+DROP INDEX IDX_driver_id on t_dispatch;
+CREATE INDEX IDX_driver_id on t_dispatch(driver_id);
+
+
+/*
+(
+select * from t_order order by id DESC
+) od
+*/
+
+t_order od
+
+
+
+
+
+# 已在平台注册车辆. 10000辆
+# 车牌编号 1 ~ 10000
+car_number <- paste('冀D', sprintf("%05d", sample(1:10000,10000,replace=FALSE)),sep='-')
+tab_car <- data.table(car_number)
+tab_car$weight <- 1
+
+########################################################################################################################
+## 首次报名抽车号(100辆车中抽10辆)
+# 发布车辆需求
+N <- 10
+
+# 报名参与抽号车辆ID
+car_id <- 1:100
+
+# 创建抽号表 lottery
+lottery <- data.table(car_id)
+lottery$car_number <- tab_car$car_number[1:100]
+lottery$weight <- tab_car$weight[1:100]
+
+# 100辆车权重初始为1.
+# lottery$weight <- 1
+
+# 100辆车中选10辆,每辆车被选中的概率 均为   对应车辆ID的权重 * 发车数量 / 申请抽号车辆总数 = 0.1 
+lottery$prob <- (lottery$weight * N )/nrow(lottery)
+
+# 从报名的100辆车中抽取N个.
+index <- sample(lottery$car_id, N, replace=FALSE, lottery$prob)
+
+# 抽中车号的权重+1
+lottery$weight[index] <- lottery$weight[index] + 1
+
+# 抽中车号ID公布:
+index
+[1] 12 89 16 81 36 68 32  8 60 26
+
+#############################################################################################################################################
+## 第二次抽车号(200辆报名中,抽取20辆) (其中100辆ID和上次相同,新增100辆,car_Id <- 101:200) 
+## ( 190辆首次抽号<权重为初始值1>,10个第二次抽号车辆权重+1 = 2)
+# 发布车辆需求
+N <- 20
+
+# 新参加抽号车辆信息
+new_cars <- data.table(car_id = 101:200, 
+					car_number = tab_car$car_number[101:200], 
+					weight = tab_car$weight[101:200], 
+					prob = 0)
+# 生成新的抽号池表
+lottery <- rbind(lottery,new_cars)
+
+# 下面部分要循环,循环最大次数等于 权重最大次数由 抽号池中 max(weight)控制
+# 计算初始参加抽号车的概率 (190个初始抽要中选择20个的概率)
+lottery[weight==1, prob := N / nrow(lottery[weight==1])]
+# 计算抽中一次车号的概率 () ( 190 + 抽中一次车辆总数*权重) 190 + 10 * 2 = 210 中抽中20个的概率. 等于给抽中一次的车辆降权(降低抽中概率)
+lottery[weight==2, prob := N /  (nrow(lottery[weight==1]) + nrow(lottery[weight==2]) * 2)]
+# 计算抽中两次车号的概率(实际上本次权重为3的车辆数为0)
+#  lottery[weight==3, prob := N / (nrow(lottery[weight==1]) + nrow(lottery[weight==2]) * 2 + nrow(lottery[weight==3]) * 3)]
+
+#开始第二轮正式抽号(200个中,抽取20个)
+index <- sample(lottery$car_id, N, replace=FALSE, lottery$prob)
+
+# 第二轮抽中车号ID公布 (上次抽中的16,32号再次被抽中,应该属于正常或期望状态)
+index
+[1]  23 151 170  56 138   1  16  11  32  14  19  88  52  63  83 192  92 145  27 194
+
+
+# 抽中车号的权重+1  (28个权重为2, 2个权重为3)  共计30辆车被抽中过!!!
+lottery$weight[index] <- lottery$weight[index] + 1
+
+
+#############################################################################################################################################
+###第三批抽号
+# 第三次抽车号(300辆报名中,抽取30辆) (其中200辆ID和上次相同,新增100辆,car_Id <- 201:300) 
+## ( 272辆首次抽号<权重为初始值1>,26个抽中一次的车辆权重+1 = 2, 2个抽中2次的车号权重为3)
+# 发布车辆需求
+N <- 30
+
+# 新参加抽号车辆信息
+new_cars <- data.table(car_id = 201:300, 
+					car_number = tab_car$car_number[201:300], 
+					weight = tab_car$weight[201:300], 
+					prob = 0)
+# 生成新的抽号池表
+lottery <- rbind(lottery,new_cars)
+
+# --下面部分要循环,循环最大次数等于 权重最大次数由 抽号池中 max(weight)控制
+# 计算初始参加抽号车的概率 (272个初始抽要中选择30个的概率)
+lottery[weight==1, prob := N / nrow(lottery[weight==1])]
+
+# 计算抽中一次车号的概率 () ( 272 + 抽中一次车辆总数*权重) 272 + 26 * 2 = 324 中抽中30个的概率. 等于给抽中一次的车辆降权(降低抽中概率)
+lottery[weight==2, prob := N / (nrow(lottery[weight==1]) + nrow(lottery[weight==2]) * 2)]
+# 计算抽中两次车号的概率()
+lottery[weight==3, prob := N / (nrow(lottery[weight==1]) + nrow(lottery[weight==2]) * 2 + nrow(lottery[weight==3]) * 3)]
+
+#开始第三轮正式抽号(300个中,抽取30个)
+index <- sample(lottery$car_id, N, replace=FALSE, lottery$prob)
+
+# 抽中车号ID公布 
+index
+[1]  23  20 231 153  93 172 128 253 108 266  68 289   2   9 119  52 188 219 121 235 177  84 204  90 135  31  61  25 133  12
+
+# 抽中车号的权重+1  (48个权重为2, 6个权重为3)  共计30辆车被抽中过!!!
+lottery$weight[index] <- lottery$weight[index] + 1
+
+#以后依次类推。。。(实际中,车牌号+始发地作为权重表的唯一性索引,及同辆车在同个地点<出发城市>作为抽号权重依据) 
+
+
+
+					
+
+
+
+
+
+
