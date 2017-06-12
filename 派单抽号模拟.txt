@@ -11,6 +11,8 @@ create index idx_add_time on t_shipping(add_time);
 DROP INDEX IDX_driver_id on t_dispatch;
 CREATE INDEX IDX_driver_id on t_dispatch(driver_id);
 
+DROP INDEX IDX_add_time on t_order;
+CREATE INDEX IDX_add_time on t_order(add_time);
 
 /*
 (
@@ -19,6 +21,7 @@ select * from t_order order by id DESC
 */
 
 t_order od
+order by od.id DEc
 
 # Mysql left join,right join,inner join的效率比较
 http://blog.csdn.net/w348399060/article/details/70158125
