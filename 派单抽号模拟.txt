@@ -1,5 +1,9 @@
-﻿show full processlist;
+# 显示完整的进程会话(FULL SQL)
+show full processlist;
+
+# 显示系统实施状态
 show global status;
+
 create index idx_shipper_id on t_shipping(shipper_id);
 create index idx_add_time on t_shipping(add_time);
 
@@ -16,6 +20,8 @@ select * from t_order order by id DESC
 
 t_order od
 
+# Mysql left join,right join,inner join的效率比较
+http://blog.csdn.net/w348399060/article/details/70158125
 
 
 
